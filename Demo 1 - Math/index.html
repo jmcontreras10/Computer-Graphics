@@ -1,0 +1,890 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Demo 1 — One 3×3 matrix does everything</title>
+    <style>
+      :root {
+        --bg: #0d0f14;
+        --surface: #12141a;
+        --surface-2: #171a22;
+        --line: #262b36;
+        --line-soft: #1d212a;
+        --ink: #e8ebf2;
+        --muted: #8b93a7;
+        --accent: #5aa9ff;
+        --amber: #ffc857;
+        --violet: #c08cff;
+        --green: #4fd6a0;
+        --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+        --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        padding: 22px 20px 32px;
+        background: var(--bg);
+        color: var(--ink);
+        font-family: var(--sans);
+        font-size: 14px;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      .wrap { max-width: 1280px; margin: 0 auto; }
+
+      .titlebar {
+        display: flex;
+        align-items: baseline;
+        gap: 14px;
+        flex-wrap: wrap;
+        margin-bottom: 16px;
+      }
+
+      h1 { margin: 0; font-size: 21px; letter-spacing: -0.015em; font-weight: 650; }
+
+      .tag {
+        font-family: var(--mono);
+        font-size: 11px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 320px;
+        gap: 18px;
+        align-items: start;
+      }
+
+      .viewport {
+        aspect-ratio: 1 / 1;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        overflow: hidden;
+        background: var(--surface);
+      }
+
+      canvas { display: block; width: 100%; height: 100%; }
+
+      .panel {
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: var(--surface);
+        padding: 16px 15px;
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+      }
+
+      .panel-title {
+        margin: 0 0 11px;
+        font-family: var(--mono);
+        font-size: 10px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--muted);
+        font-weight: 600;
+      }
+
+      #controls { display: flex; flex-direction: column; gap: 11px; }
+
+      .ctrl { display: flex; flex-direction: column; gap: 4px; }
+
+      .ctrl-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 10px;
+      }
+
+      .ctrl-label {
+        font-family: var(--mono);
+        font-size: 11.5px;
+        color: var(--muted);
+      }
+
+      .ctrl-value {
+        font-family: var(--mono);
+        font-size: 11.5px;
+        font-variant-numeric: tabular-nums;
+      }
+
+      input[type="range"] { width: 100%; margin: 0; }
+
+      .ctrl-toggle { flex-direction: row; align-items: center; gap: 8px; }
+      .ctrl-toggle input { accent-color: var(--accent); margin: 0; }
+
+      .segmented {
+        display: flex;
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        overflow: hidden;
+      }
+
+      .seg {
+        flex: 1;
+        padding: 7px 6px;
+        background: transparent;
+        border: 0;
+        border-right: 1px solid var(--line);
+        color: var(--muted);
+        font-family: var(--mono);
+        font-size: 11px;
+        cursor: pointer;
+      }
+
+      .seg:last-child { border-right: 0; }
+      .seg.is-active { background: var(--accent); color: #08101c; font-weight: 600; }
+
+      .btn {
+        margin-top: 2px;
+        padding: 7px 12px;
+        border-radius: 7px;
+        border: 1px solid var(--line);
+        background: var(--surface-2);
+        color: var(--muted);
+        font-family: var(--mono);
+        font-size: 11px;
+        cursor: pointer;
+      }
+
+      .btn:hover { border-color: var(--accent); color: var(--ink); }
+
+      #readouts { display: flex; flex-direction: column; }
+
+      .readout {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 10px;
+        padding: 5px 0;
+        border-bottom: 1px dashed var(--line-soft);
+      }
+
+      .readout-label {
+        font-family: var(--mono);
+        font-size: 11px;
+        color: var(--muted);
+      }
+
+      .readout-value {
+        font-family: var(--mono);
+        font-size: 11.5px;
+        font-variant-numeric: tabular-nums;
+      }
+
+      /* ---------------------------------------------------- equation strip */
+
+      .equations {
+        margin-top: 18px;
+        padding: 16px 18px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: var(--surface);
+        overflow-x: auto;
+      }
+
+      .eqrow {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-width: max-content;
+      }
+
+      .eqrow + .eqrow { margin-top: 14px; }
+
+      .op {
+        font-family: var(--mono);
+        font-size: 15px;
+        color: var(--muted);
+      }
+
+      .mat { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+
+      .mat-name {
+        font-family: var(--mono);
+        font-size: 11px;
+        color: var(--muted);
+      }
+
+      .mat-body {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(46px, auto));
+        gap: 1px 10px;
+        padding: 7px 9px;
+        border-left: 2px solid var(--line);
+        border-right: 2px solid var(--line);
+        border-radius: 3px;
+        background: var(--surface-2);
+      }
+
+      .cell {
+        font-family: var(--mono);
+        font-size: 11.5px;
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+        color: var(--muted);
+        transition: color 0.15s ease;
+      }
+
+      .cell.live { color: var(--ink); font-weight: 600; }
+      .cell.result { color: var(--ink); }
+
+      @media (max-width: 900px) {
+        .grid { grid-template-columns: minmax(0, 1fr); }
+      }
+    </style>
+  </head>
+
+  <body>
+    <main class="wrap">
+      <div class="titlebar">
+        <h1>One 3×3 matrix does everything</h1>
+        <span class="tag">CVI 2026-2 · Topic 1 · Caps. 2, 6, 7</span>
+      </div>
+
+      <div class="grid">
+        <div class="viewport"><canvas id="view"></canvas></div>
+        <aside class="panel">
+          <section>
+            <h2 class="panel-title">Parameters</h2>
+            <div id="controls"></div>
+          </section>
+          <section>
+            <h2 class="panel-title">Live values</h2>
+            <div id="readouts"></div>
+          </section>
+        </aside>
+      </div>
+
+      <div class="equations" id="equations"></div>
+    </main>
+
+    <script>
+      'use strict';
+
+      // =====================================================================
+      // Math — Marschner & Shirley Caps. 2, 6, 7
+      //   Mat3 is row-major m[row][col]; points are column vectors (p' = M·p),
+      //   so A·B means "apply B first, then A".
+      // =====================================================================
+
+      const DEG = Math.PI / 180;
+
+      const identity = () => [[1, 0, 0], [0, 1, 0], [0, 0, 1]];
+
+      function multiply(a, b) {
+        const out = [[0, 0, 0], [0, 0, 0], [0, 0, 0]];
+        for (let r = 0; r < 3; r++) {
+          for (let c = 0; c < 3; c++) {
+            let sum = 0;
+            for (let k = 0; k < 3; k++) sum += a[r][k] * b[k][c];
+            out[r][c] = sum;
+          }
+        }
+        return out;
+      }
+
+      const translation = (tx, ty) => [[1, 0, tx], [0, 1, ty], [0, 0, 1]];
+      const scaling = (sx, sy) => [[sx, 0, 0], [0, sy, 0], [0, 0, 1]];
+      const shearX = (k) => [[1, k, 0], [0, 1, 0], [0, 0, 1]];
+
+      function rotation(rad) {
+        const c = Math.cos(rad);
+        const s = Math.sin(rad);
+        return [[c, -s, 0], [s, c, 0], [0, 0, 1]];
+      }
+
+      function determinant(m) {
+        return (
+          m[0][0] * (m[1][1] * m[2][2] - m[1][2] * m[2][1]) -
+          m[0][1] * (m[1][0] * m[2][2] - m[1][2] * m[2][0]) +
+          m[0][2] * (m[1][0] * m[2][1] - m[1][1] * m[2][0])
+        );
+      }
+
+      function inverse(m) {
+        const det = determinant(m);
+        if (Math.abs(det) < 1e-9) return identity();
+
+        const cof = [
+          [
+            m[1][1] * m[2][2] - m[1][2] * m[2][1],
+            -(m[1][0] * m[2][2] - m[1][2] * m[2][0]),
+            m[1][0] * m[2][1] - m[1][1] * m[2][0],
+          ],
+          [
+            -(m[0][1] * m[2][2] - m[0][2] * m[2][1]),
+            m[0][0] * m[2][2] - m[0][2] * m[2][0],
+            -(m[0][0] * m[2][1] - m[0][1] * m[2][0]),
+          ],
+          [
+            m[0][1] * m[1][2] - m[0][2] * m[1][1],
+            -(m[0][0] * m[1][2] - m[0][2] * m[1][0]),
+            m[0][0] * m[1][1] - m[0][1] * m[1][0],
+          ],
+        ];
+
+        const out = identity();
+        for (let r = 0; r < 3; r++) {
+          for (let c = 0; c < 3; c++) out[r][c] = cof[c][r] / det;
+        }
+        return out;
+      }
+
+      function applyPoint(m, p) {
+        return {
+          x: m[0][0] * p.x + m[0][1] * p.y + m[0][2],
+          y: m[1][0] * p.x + m[1][1] * p.y + m[1][2],
+        };
+      }
+
+      const pt = (x, y) => ({ x, y });
+
+      // =====================================================================
+      // The classic gradient triangle
+      // =====================================================================
+
+      const TRI = [pt(-1.0, -0.7), pt(1.0, -0.7), pt(0.0, 1.1)];
+      const TRI_COLORS = [
+        [255, 78, 106],
+        [79, 214, 160],
+        [90, 169, 255],
+      ];
+      const UNIT_SQUARE = [pt(0, 0), pt(1, 0), pt(1, 1), pt(0, 1)];
+
+      const COLOR = {
+        grid: '#232733',
+        axis: '#4a5163',
+        ghost: '#5b6377',
+        muted: '#8b93a7',
+        amber: '#ffc857',
+        violet: '#c08cff',
+        red: '#ff4e6a',
+        green: '#4fd6a0',
+        bg: '#12141a',
+      };
+
+      // =====================================================================
+      // Parameters. Controls are generated from this declaration; `color` is
+      // what visually links a slider to the matrix cells it drives.
+      // =====================================================================
+
+      const PARAMS = [
+        // Defaults are the identity on purpose: the demo starts with M = I, so
+        // every change you make is visibly something you added.
+        { id: 'sx', label: 'scale x', kind: 'slider', min: -2, max: 2.5, step: 0.05, value: 1, color: '#ffc857' },
+        { id: 'sy', label: 'scale y', kind: 'slider', min: -2, max: 2.5, step: 0.05, value: 1, color: '#ffc857' },
+        { id: 'k', label: 'shear x', kind: 'slider', min: -1.5, max: 1.5, step: 0.05, value: 0, color: '#c08cff' },
+        { id: 'theta', label: 'rotation', kind: 'slider', min: -180, max: 180, step: 1, value: 0, unit: '°', color: '#4fd6a0' },
+        { id: 'tx', label: 'translate x', kind: 'slider', min: -3, max: 3, step: 0.05, value: 0, color: '#5aa9ff' },
+        { id: 'ty', label: 'translate y', kind: 'slider', min: -3, max: 3, step: 0.05, value: 0, color: '#5aa9ff' },
+        { id: 'order', label: 'order', kind: 'choice', choices: ['T·R·H·S', 'S·H·R·T'], value: 0 },
+        { id: 'span', label: 'view span', kind: 'slider', min: 4, max: 16, step: 0.5, value: 7.5, color: '#8b93a7' },
+        { id: 'ghost', label: 'original', kind: 'toggle', value: 1 },
+        { id: 'basis', label: 'basis vectors', kind: 'toggle', value: 1 },
+        { id: 'unit', label: 'unit square', kind: 'toggle', value: 1 },
+        { id: 'inverse', label: 'inverse round-trip', kind: 'toggle', value: 0 },
+      ];
+
+      const state = {};
+      for (const p of PARAMS) state[p.id] = p.value;
+
+      // Which cells of each factor matrix a control actually writes into.
+      // Used to tint those cells with the control's colour.
+      const LIVE_CELLS = {
+        S: { 0: '#ffc857', 4: '#ffc857' },
+        H: { 1: '#c08cff' },
+        R: { 0: '#4fd6a0', 1: '#4fd6a0', 3: '#4fd6a0', 4: '#4fd6a0' },
+        T: { 2: '#5aa9ff', 5: '#5aa9ff' },
+      };
+
+      function factors() {
+        return {
+          T: translation(state.tx, state.ty),
+          R: rotation(state.theta * DEG),
+          H: shearX(state.k),
+          S: scaling(state.sx, state.sy),
+        };
+      }
+
+      function buildMatrix(f) {
+        return state.order === 0
+          ? multiply(multiply(f.T, f.R), multiply(f.H, f.S))
+          : multiply(multiply(f.S, f.H), multiply(f.R, f.T));
+      }
+
+      // =====================================================================
+      // Canvas
+      // =====================================================================
+
+      const canvas = document.getElementById('view');
+      const ctx = canvas.getContext('2d');
+
+      const view = { scale: 60, w: 600, h: 600, dpr: 1 };
+
+      const toScreen = (p) => ({
+        x: view.w / 2 + p.x * view.scale,
+        y: view.h / 2 - p.y * view.scale,
+      });
+
+      function pathOf(shape) {
+        ctx.beginPath();
+        shape.forEach((p, i) => {
+          const s = toScreen(p);
+          if (i === 0) ctx.moveTo(s.x, s.y);
+          else ctx.lineTo(s.x, s.y);
+        });
+        ctx.closePath();
+      }
+
+      function strokeShape(shape, color, width, dash) {
+        ctx.save();
+        ctx.setLineDash(dash || []);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = width;
+        ctx.lineJoin = 'round';
+        pathOf(shape);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      function fillShape(shape, color) {
+        ctx.save();
+        ctx.fillStyle = color;
+        pathOf(shape);
+        ctx.fill();
+        ctx.restore();
+      }
+
+      function arrow(fromWorld, toWorld, color, label) {
+        const a = toScreen(fromWorld);
+        const b = toScreen(toWorld);
+        const dx = b.x - a.x;
+        const dy = b.y - a.y;
+        const len = Math.hypot(dx, dy);
+        if (len < 1) return;
+
+        const ux = dx / len;
+        const uy = dy / len;
+        const head = Math.min(13, len * 0.4);
+
+        ctx.save();
+        ctx.strokeStyle = color;
+        ctx.fillStyle = color;
+        ctx.lineWidth = 2.5;
+        ctx.lineCap = 'round';
+
+        ctx.beginPath();
+        ctx.moveTo(a.x, a.y);
+        ctx.lineTo(b.x - ux * head * 0.8, b.y - uy * head * 0.8);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(b.x, b.y);
+        ctx.lineTo(b.x - ux * head - uy * head * 0.42, b.y - uy * head + ux * head * 0.42);
+        ctx.lineTo(b.x - ux * head + uy * head * 0.42, b.y - uy * head - ux * head * 0.42);
+        ctx.closePath();
+        ctx.fill();
+
+        if (label) {
+          ctx.font = '600 13px ui-monospace, SFMono-Regular, Menlo, monospace';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(label, b.x + ux * 10 + 4, b.y + uy * 10 - 8);
+        }
+        ctx.restore();
+      }
+
+      function drawGrid() {
+        const halfX = view.w / 2 / view.scale;
+        const halfY = view.h / 2 / view.scale;
+
+        ctx.save();
+        ctx.strokeStyle = COLOR.grid;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        for (let x = Math.ceil(-halfX); x <= halfX; x++) {
+          const s = toScreen(pt(x, 0));
+          ctx.moveTo(s.x, 0);
+          ctx.lineTo(s.x, view.h);
+        }
+        for (let y = Math.ceil(-halfY); y <= halfY; y++) {
+          const s = toScreen(pt(0, y));
+          ctx.moveTo(0, s.y);
+          ctx.lineTo(view.w, s.y);
+        }
+        ctx.stroke();
+
+        ctx.strokeStyle = COLOR.axis;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        const o = toScreen(pt(0, 0));
+        ctx.moveTo(0, o.y);
+        ctx.lineTo(view.w, o.y);
+        ctx.moveTo(o.x, 0);
+        ctx.lineTo(o.x, view.h);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      // Twice the signed area of the triangle ABC. Its sign tells you which side
+      // of AB the point C is on -- the whole inside-test in one expression.
+      const edge = (a, b, c) => (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
+
+      /**
+       * Cap. 2.7 -- barycentric coordinates.
+       *
+       * For every pixel we solve P = l0*P0 + l1*P1 + l2*P2 with l0+l1+l2 = 1.
+       * The pixel is inside exactly when all three are >= 0, and the colour is
+       * the same weighted sum applied to the vertex colours. This is what a GPU
+       * does for every triangle it draws; here it is nine lines of arithmetic.
+       *
+       * Works in DEVICE pixels, straight into the ImageData buffer.
+       */
+      function rasterTriangle(img, p0, p1, p2, c0, c1, c2) {
+        const denom = edge(p0, p1, p2);
+        if (Math.abs(denom) < 1e-9) return;
+
+        const W = img.width;
+        const H = img.height;
+        const data = img.data;
+
+        const minX = Math.max(0, Math.floor(Math.min(p0.x, p1.x, p2.x)));
+        const maxX = Math.min(W - 1, Math.ceil(Math.max(p0.x, p1.x, p2.x)));
+        const minY = Math.max(0, Math.floor(Math.min(p0.y, p1.y, p2.y)));
+        const maxY = Math.min(H - 1, Math.ceil(Math.max(p0.y, p1.y, p2.y)));
+
+        // 2x2 samples per pixel, so the silhouette gets antialiased.
+        const OFF = [0.25, 0.75];
+
+        for (let y = minY; y <= maxY; y++) {
+          for (let x = minX; x <= maxX; x++) {
+            let hits = 0;
+            let r = 0;
+            let g = 0;
+            let b = 0;
+
+            for (const oy of OFF) {
+              for (const ox of OFF) {
+                const p = { x: x + ox, y: y + oy };
+                const l0 = edge(p, p1, p2) / denom;
+                const l1 = edge(p0, p, p2) / denom;
+                const l2 = 1 - l0 - l1;
+                if (l0 < 0 || l1 < 0 || l2 < 0) continue;
+
+                hits++;
+                r += l0 * c0[0] + l1 * c1[0] + l2 * c2[0];
+                g += l0 * c0[1] + l1 * c1[1] + l2 * c2[1];
+                b += l0 * c0[2] + l1 * c1[2] + l2 * c2[2];
+              }
+            }
+
+            if (hits === 0) continue;
+
+            const cover = hits / 4;
+            r /= hits;
+            g /= hits;
+            b /= hits;
+
+            const i = (y * W + x) * 4;
+            data[i] = data[i] * (1 - cover) + r * cover;
+            data[i + 1] = data[i + 1] * (1 - cover) + g * cover;
+            data[i + 2] = data[i + 2] * (1 - cover) + b * cover;
+            data[i + 3] = 255;
+          }
+        }
+      }
+
+      function draw() {
+        const f = factors();
+        const M = buildMatrix(f);
+        view.scale = Math.min(view.w, view.h) / state.span;
+
+        ctx.save();
+        ctx.fillStyle = COLOR.bg;
+        ctx.fillRect(0, 0, view.w, view.h);
+        ctx.restore();
+
+        drawGrid();
+
+        if (state.ghost) strokeShape(TRI, COLOR.ghost, 1.3, [6, 5]);
+
+        if (state.unit) {
+          fillShape(UNIT_SQUARE, 'rgba(255, 200, 87, 0.08)');
+          strokeShape(UNIT_SQUARE, 'rgba(255, 200, 87, 0.45)', 1.3, [5, 4]);
+        }
+
+        // The gradient triangle goes through our own rasterizer, so it has to be
+        // composited into the pixel buffer rather than drawn with canvas paths.
+        const tri = TRI.map((p) => applyPoint(M, p));
+        const dev = tri.map((p) => {
+          const s = toScreen(p);
+          return { x: s.x * view.dpr, y: s.y * view.dpr };
+        });
+
+        const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        rasterTriangle(img, dev[0], dev[1], dev[2], TRI_COLORS[0], TRI_COLORS[1], TRI_COLORS[2]);
+        ctx.putImageData(img, 0, 0);
+
+        strokeShape(tri, 'rgba(232, 235, 242, 0.55)', 1.4);
+
+        if (state.unit) {
+          const square = UNIT_SQUARE.map((p) => applyPoint(M, p));
+          fillShape(square, 'rgba(255, 200, 87, 0.12)');
+          strokeShape(square, COLOR.amber, 1.6);
+        }
+
+        if (state.inverse) {
+          const roundTrip = multiply(inverse(M), M);
+          strokeShape(TRI.map((p) => applyPoint(roundTrip, p)), COLOR.violet, 1.6, [4, 4]);
+        }
+
+        if (state.basis) {
+          const origin = applyPoint(M, pt(0, 0));
+          arrow(origin, applyPoint(M, pt(1, 0)), COLOR.red, 'M·e₁');
+          arrow(origin, applyPoint(M, pt(0, 1)), COLOR.green, 'M·e₂');
+        }
+
+        updateReadouts(M);
+        updateEquations(f, M);
+      }
+
+      // =====================================================================
+      // Panels
+      // =====================================================================
+
+      function fmt(v, d) {
+        if (Math.abs(v) < 5e-4) v = 0;
+        return v.toFixed(d);
+      }
+
+      const readoutsNode = document.getElementById('readouts');
+
+      function updateReadouts(M) {
+        const det = determinant(M);
+        const e1 = applyPoint(M, pt(1, 0));
+        const e2 = applyPoint(M, pt(0, 1));
+
+        let orientation;
+        if (Math.abs(det) < 1e-6) orientation = 'degenerate';
+        else if (det > 0) orientation = 'preserved';
+        else orientation = 'flipped';
+
+        const rows = [
+          ['det(M)', fmt(det, 4)],
+          ['area ×', fmt(Math.abs(det), 3)],
+          ['orientation', orientation],
+          ['M·e₁', '(' + fmt(e1.x, 2) + ', ' + fmt(e1.y, 2) + ')'],
+          ['M·e₂', '(' + fmt(e2.x, 2) + ', ' + fmt(e2.y, 2) + ')'],
+        ];
+
+        readoutsNode.replaceChildren(
+          ...rows.map(([label, value]) => {
+            const row = document.createElement('div');
+            row.className = 'readout';
+
+            const l = document.createElement('span');
+            l.className = 'readout-label';
+            l.textContent = label;
+
+            const v = document.createElement('span');
+            v.className = 'readout-value';
+            v.textContent = value;
+
+            row.append(l, v);
+            return row;
+          })
+        );
+      }
+
+      const equationsNode = document.getElementById('equations');
+
+      function matrixEl(name, m, liveMap, isResult) {
+        const wrap = document.createElement('div');
+        wrap.className = 'mat';
+
+        const label = document.createElement('span');
+        label.className = 'mat-name';
+        label.textContent = name;
+
+        const body = document.createElement('div');
+        body.className = 'mat-body';
+
+        for (let r = 0; r < 3; r++) {
+          for (let c = 0; c < 3; c++) {
+            const cell = document.createElement('span');
+            const index = r * 3 + c;
+            const tint = liveMap && liveMap[index];
+
+            cell.className = 'cell' + (tint ? ' live' : '') + (isResult ? ' result' : '');
+            if (tint) cell.style.color = tint;
+            cell.textContent = fmt(m[r][c], 2);
+            body.append(cell);
+          }
+        }
+
+        wrap.append(label, body);
+        return wrap;
+      }
+
+      function opEl(text) {
+        const span = document.createElement('span');
+        span.className = 'op';
+        span.textContent = text;
+        return span;
+      }
+
+      function updateEquations(f, M) {
+        const order = state.order === 0 ? ['T', 'R', 'H', 'S'] : ['S', 'H', 'R', 'T'];
+
+        const row = document.createElement('div');
+        row.className = 'eqrow';
+        row.append(matrixEl('M', M, null, true), opEl('='));
+
+        order.forEach((name, i) => {
+          if (i > 0) row.append(opEl('·'));
+          row.append(matrixEl(name, f[name], LIVE_CELLS[name], false));
+        });
+
+        equationsNode.replaceChildren(row);
+      }
+
+      // =====================================================================
+      // Controls
+      // =====================================================================
+
+      const controlsNode = document.getElementById('controls');
+
+      function buildControls() {
+        controlsNode.replaceChildren();
+
+        for (const spec of PARAMS) {
+          if (spec.kind === 'toggle') {
+            const wrap = document.createElement('label');
+            wrap.className = 'ctrl ctrl-toggle';
+
+            const input = document.createElement('input');
+            input.type = 'checkbox';
+            input.checked = state[spec.id] > 0.5;
+            input.addEventListener('change', () => {
+              state[spec.id] = input.checked ? 1 : 0;
+              draw();
+            });
+
+            const label = document.createElement('span');
+            label.className = 'ctrl-label';
+            label.textContent = spec.label;
+
+            wrap.append(input, label);
+            controlsNode.append(wrap);
+          } else if (spec.kind === 'choice') {
+            const wrap = document.createElement('div');
+            wrap.className = 'ctrl';
+
+            const label = document.createElement('span');
+            label.className = 'ctrl-label';
+            label.textContent = spec.label;
+
+            const group = document.createElement('div');
+            group.className = 'segmented';
+
+            const buttons = spec.choices.map((choice, i) => {
+              const button = document.createElement('button');
+              button.type = 'button';
+              button.className = 'seg' + (i === state[spec.id] ? ' is-active' : '');
+              button.textContent = choice;
+              button.addEventListener('click', () => {
+                buttons.forEach((b) => b.classList.remove('is-active'));
+                button.classList.add('is-active');
+                state[spec.id] = i;
+                draw();
+              });
+              group.append(button);
+              return button;
+            });
+
+            wrap.append(label, group);
+            controlsNode.append(wrap);
+          } else {
+            const wrap = document.createElement('label');
+            wrap.className = 'ctrl';
+
+            const head = document.createElement('span');
+            head.className = 'ctrl-head';
+
+            const label = document.createElement('span');
+            label.className = 'ctrl-label';
+            label.textContent = spec.label;
+            if (spec.color) label.style.color = spec.color;
+
+            const value = document.createElement('span');
+            value.className = 'ctrl-value';
+
+            head.append(label, value);
+
+            const input = document.createElement('input');
+            input.type = 'range';
+            input.min = spec.min;
+            input.max = spec.max;
+            input.step = spec.step;
+            input.value = state[spec.id];
+            if (spec.color) input.style.accentColor = spec.color;
+
+            const decimals = spec.step >= 1 ? 0 : 2;
+            const show = () => {
+              const v = Number(input.value);
+              value.textContent = spec.unit ? v.toFixed(decimals) + spec.unit : v.toFixed(decimals);
+            };
+            show();
+
+            input.addEventListener('input', () => {
+              state[spec.id] = Number(input.value);
+              show();
+              draw();
+            });
+
+            wrap.append(head, input);
+            controlsNode.append(wrap);
+          }
+        }
+
+        const reset = document.createElement('button');
+        reset.type = 'button';
+        reset.className = 'btn';
+        reset.textContent = 'Reset';
+        reset.addEventListener('click', () => {
+          for (const p of PARAMS) state[p.id] = p.value;
+          buildControls();
+          draw();
+        });
+        controlsNode.append(reset);
+      }
+
+      // =====================================================================
+
+      function resize() {
+        const rect = canvas.getBoundingClientRect();
+        if (rect.width < 1 || rect.height < 1) return;
+
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        canvas.width = Math.round(rect.width * dpr);
+        canvas.height = Math.round(rect.height * dpr);
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+        view.w = rect.width;
+        view.h = rect.height;
+        view.dpr = dpr;
+
+        draw();
+      }
+
+      buildControls();
+      new ResizeObserver(resize).observe(canvas);
+      resize();
+    </script>
+  </body>
+</html>

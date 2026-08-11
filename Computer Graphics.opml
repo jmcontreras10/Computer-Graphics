@@ -1,0 +1,26 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<opml version="1.0">
+  <head>
+    <title>CVI</title>
+  </head>
+  <body>
+    <outline text="CVI">
+      <outline text="Particulas"></outline>
+      <outline text="Iluminación "></outline>
+      <outline text="Eventos"></outline>
+      <outline text="2D">
+        <outline text="Sprites"></outline>
+      </outline>
+      <outline text="3D">
+        <outline text="Modelos"></outline>
+        <outline text="Texturas"></outline>
+        <outline text="Shaders"></outline>
+        <outline text="Cámara ">
+          <outline text="Perspectiva"></outline>
+        </outline>
+      </outline>
+      <outline text="Animaciones"></outline>
+      <outline text="Color"></outline>
+    </outline>
+  </body>
+</opml>
