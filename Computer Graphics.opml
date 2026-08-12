@@ -21,6 +21,40 @@
       </outline>
       <outline text="Animaciones"></outline>
       <outline text="Color"></outline>
+      <outline text="Matemáticas ">
+        <outline text="Álgebra lineal">
+          <outline text="Transformaciones">
+            <outline text="Traslación "></outline>
+            <outline text="Rotación ">
+              <outline text="Quaternions"></outline>
+              <outline text="Angulos de Euler"></outline>
+            </outline>
+            <outline text="Escalamiento"></outline>
+            <outline text="Shearing"></outline>
+          </outline>
+          <outline text="Vectores">
+            <outline text="Producto cruz">
+              <outline text="Vector normal"></outline>
+            </outline>
+            <outline text="Producto punto"></outline>
+          </outline>
+          <outline text="Matrices ">
+            <outline text="Homogeneas"></outline>
+          </outline>
+          <outline text="Determinantes">
+            <outline text="Areas"></outline>
+          </outline>
+        </outline>
+        <outline text="Geometría"></outline>
+        <outline text="Cálculo">
+          <outline text="Integrales"></outline>
+          <outline text="Curvas"></outline>
+          <outline text="Gradiente"></outline>
+        </outline>
+        <outline text="Trigonometría ">
+          <outline text="Triángulos "></outline>
+        </outline>
+      </outline>
     </outline>
   </body>
 </opml>
