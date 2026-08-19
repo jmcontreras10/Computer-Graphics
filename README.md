@@ -12,6 +12,7 @@ build step, no dependencies, no server. Open it by double-clicking.
 | # | Folder | Topic | Chapters |
 |---|--------|-------|----------|
 | 1 | [`Demo 1 - Math`](./Demo%201%20-%20Math/) | Mathematical foundations | 2, 6, 7 |
+| 2 | [`Demo 2 - Raster Images`](./Demo%202%20-%20Raster%20Images/) | Raster images — chromatic aberration | 3 |
 
 ### Demo 1 — One 3×3 matrix does everything
 
@@ -31,6 +32,28 @@ change you make is visibly something you added.
 - Switching the composition order to `S · H · R · T` uses the same four factors
   and gives a different matrix — multiplication does not commute — while the
   determinant stays put.
+
+### Demo 2 — Chromatic aberration
+
+Simulates the colour fringing a real lens produces, driven by actual glass
+dispersion data rather than an arbitrary offset.
+
+- **Cauchy's equation** `n(λ) = A + B/λ²` gives a refractive index per channel;
+  the lensmaker's equation turns that into a focal length, and different focal
+  lengths mean different magnification. That is lateral chromatic aberration.
+  Pick BK7, BaF10 or SF10 and watch the dispersion change.
+- The test chart carries **concentric arcs on the left and radial spokes on the
+  right, at the same radii**. The displacement is radial, so the arcs fringe hard
+  and the spokes stay clean — the `Δ` view proves it. The small rings at the
+  optical centre never fringe at all, because `|Δ| = r(1 − 1/s)` is zero there.
+- A draggable **probe** magnifies any edge, and the **channel profile** plots R, G
+  and B along that row: the three curves come out shifted relative to each other,
+  which is the aberration measured in pixels.
+- Two switches connect this to the rest of the chapter: resampling in **linear
+  light vs. sRGB** (gamma), and **bilinear vs. nearest** reconstruction (filtering).
+
+Sanity check on the optics: the demo's Abbe-style number for BK7 comes out at
+63.7 against a published value of about 64.2.
 
 ## How it is written
 

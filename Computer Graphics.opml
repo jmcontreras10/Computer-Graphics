@@ -55,6 +55,45 @@
           <outline text="Triángulos "></outline>
         </outline>
       </outline>
+      <outline text="Métodos de renderizado">
+        <outline text="Imágenes Raster">
+          <outline text="Pixeles">
+            <outline text="Color">
+              <outline text="RGBA">
+                <outline text="RGB"></outline>
+                <outline text="Canal alpha"></outline>
+              </outline>
+              <outline text="Representaciones de bit"></outline>
+              <outline text="Representaciones&#10;de 0 a 1"></outline>
+              <outline text="Antialiasing"></outline>
+            </outline>
+          </outline>
+          <outline text="Tamaño">
+            <outline text="Reescalado"></outline>
+          </outline>
+          <outline text="Velocidad entre&#10;imagenes (fps)"></outline>
+          <outline text="Dispositivos">
+            <outline text="Salida">
+              <outline text="Impresos"></outline>
+              <outline text="Displays">
+                <outline text="Gamma"></outline>
+              </outline>
+            </outline>
+            <outline text="Entrada">
+              <outline text="Lentes">
+                <outline text="Luz"></outline>
+              </outline>
+            </outline>
+          </outline>
+          <outline text="Formatos">
+            <outline text="Jpeg"></outline>
+            <outline text="Tiff"></outline>
+            <outline text="Ppm"></outline>
+            <outline text="Png"></outline>
+          </outline>
+        </outline>
+        <outline text="Ray tracing"></outline>
+      </outline>
     </outline>
   </body>
 </opml>

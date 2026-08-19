@@ -1,0 +1,902 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Demo 2 — Chromatic aberration</title>
+    <style>
+      :root {
+        --bg: #0d0f14;
+        --surface: #12141a;
+        --surface-2: #171a22;
+        --line: #262b36;
+        --line-soft: #1d212a;
+        --ink: #e8ebf2;
+        --muted: #8b93a7;
+        --accent: #5aa9ff;
+        --red: #ff5c7a;
+        --green: #4fd6a0;
+        --blue: #5aa9ff;
+        --amber: #ffc857;
+        --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+        --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        padding: 22px 20px 34px;
+        background: var(--bg);
+        color: var(--ink);
+        font-family: var(--sans);
+        font-size: 14px;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      .wrap { max-width: 1320px; margin: 0 auto; }
+
+      .titlebar {
+        display: flex;
+        align-items: baseline;
+        gap: 14px;
+        flex-wrap: wrap;
+        margin-bottom: 16px;
+      }
+
+      h1 { margin: 0; font-size: 21px; letter-spacing: -0.015em; font-weight: 650; }
+
+      .tag {
+        font-family: var(--mono);
+        font-size: 11px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 320px;
+        gap: 18px;
+        align-items: start;
+      }
+
+      .stack { display: flex; flex-direction: column; gap: 18px; }
+
+      .card {
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: var(--surface);
+        overflow: hidden;
+      }
+
+      .card-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+        padding: 9px 13px;
+        border-bottom: 1px solid var(--line);
+        font-family: var(--mono);
+        font-size: 10px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      /* Capped so the probe, the profile and the equations stay above the fold. */
+      .viewport { height: min(60vh, 600px); display: flex; justify-content: center; background: #000; }
+      #main { display: block; height: 100%; width: auto; aspect-ratio: 1 / 1; cursor: crosshair; }
+
+      .lower { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 18px; }
+
+      .mag-box { aspect-ratio: 1 / 1; background: #000; }
+      #mag { display: block; width: 100%; height: 100%; }
+
+      .profile-box { height: 258px; background: var(--surface); }
+      #profile { display: block; width: 100%; height: 100%; }
+
+      .panel { padding: 16px 15px; display: flex; flex-direction: column; gap: 18px; }
+
+      .panel-title {
+        margin: 0 0 11px;
+        font-family: var(--mono);
+        font-size: 10px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--muted);
+        font-weight: 600;
+      }
+
+      #controls { display: flex; flex-direction: column; gap: 11px; }
+
+      .ctrl { display: flex; flex-direction: column; gap: 4px; }
+
+      .ctrl-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 10px;
+      }
+
+      .ctrl-label { font-family: var(--mono); font-size: 11.5px; color: var(--muted); }
+
+      .ctrl-value {
+        font-family: var(--mono);
+        font-size: 11.5px;
+        font-variant-numeric: tabular-nums;
+      }
+
+      input[type="range"] { width: 100%; margin: 0; accent-color: var(--accent); }
+
+      .ctrl-toggle { flex-direction: row; align-items: center; gap: 8px; }
+      .ctrl-toggle input { accent-color: var(--accent); margin: 0; }
+
+      .segmented { display: flex; border: 1px solid var(--line); border-radius: 7px; overflow: hidden; }
+
+      .seg {
+        flex: 1;
+        padding: 6px 4px;
+        background: transparent;
+        border: 0;
+        border-right: 1px solid var(--line);
+        color: var(--muted);
+        font-family: var(--mono);
+        font-size: 10.5px;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+
+      .seg:last-child { border-right: 0; }
+      .seg.is-active { background: var(--accent); color: #08101c; font-weight: 600; }
+      .seg.warn.is-active { background: var(--amber); color: #241a00; }
+
+      .btn {
+        padding: 7px 12px;
+        border-radius: 7px;
+        border: 1px solid var(--line);
+        background: var(--surface-2);
+        color: var(--muted);
+        font-family: var(--mono);
+        font-size: 11px;
+        cursor: pointer;
+      }
+
+      .btn:hover { border-color: var(--accent); color: var(--ink); }
+
+      #readouts { display: flex; flex-direction: column; }
+
+      .readout {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 10px;
+        padding: 5px 0;
+        border-bottom: 1px dashed var(--line-soft);
+      }
+
+      .readout-label { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+
+      .readout-value {
+        font-family: var(--mono);
+        font-size: 11.5px;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .r-red { color: var(--red); }
+      .r-green { color: var(--green); }
+      .r-blue { color: var(--blue); }
+
+      /* ------------------------------------------------- equations + code */
+
+      .bottom { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; margin-top: 18px; }
+
+      .eq, .code { padding: 14px 16px; font-family: var(--mono); font-size: 12px; overflow-x: auto; }
+
+      .eq-line { display: flex; gap: 12px; align-items: baseline; padding: 4px 0; white-space: nowrap; }
+      .eq-name { color: var(--muted); min-width: 84px; }
+      .eq-body { color: var(--ink); }
+
+      .code pre { margin: 0; line-height: 1.6; white-space: pre; }
+      .c-key { color: #c08cff; }
+      .c-num { color: var(--amber); }
+      .c-com { color: #5b6377; }
+      .c-fn { color: var(--accent); }
+
+      @media (max-width: 1080px) {
+        .grid { grid-template-columns: minmax(0, 1fr); }
+        .lower { grid-template-columns: minmax(0, 1fr); }
+        .bottom { grid-template-columns: minmax(0, 1fr); }
+      }
+    </style>
+  </head>
+
+  <body>
+    <main class="wrap">
+      <div class="titlebar">
+        <h1>Chromatic aberration</h1>
+        <span class="tag">CVI 2026-2 · Demo 2 · Raster images · Cap. 3</span>
+      </div>
+
+      <div class="grid">
+        <div class="stack">
+          <div class="card">
+            <div class="card-head">
+              <span>Sensor image · 512 × 512</span>
+              <span id="mode-note">click or drag to move the probe</span>
+            </div>
+            <div class="viewport"><canvas id="main"></canvas></div>
+          </div>
+
+          <div class="lower">
+            <div class="card">
+              <div class="card-head"><span>Probe</span></div>
+              <div class="mag-box"><canvas id="mag"></canvas></div>
+            </div>
+            <div class="card">
+              <div class="card-head"><span>Channel profile along the probe row</span></div>
+              <div class="profile-box"><canvas id="profile"></canvas></div>
+            </div>
+          </div>
+        </div>
+
+        <aside class="card panel">
+          <section>
+            <h2 class="panel-title">Parameters</h2>
+            <div id="controls"></div>
+          </section>
+          <section>
+            <h2 class="panel-title">Live values</h2>
+            <div id="readouts"></div>
+          </section>
+        </aside>
+      </div>
+
+      <div class="bottom">
+        <div class="card">
+          <div class="card-head"><span>The math</span></div>
+          <div class="eq" id="equations"></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><span>The inner loop</span></div>
+          <div class="code" id="code"></div>
+        </div>
+      </div>
+    </main>
+
+    <script>
+      'use strict';
+
+      // =====================================================================
+      // Working resolution. Everything is processed here and then scaled to
+      // whatever size the page gives us, so cost does not depend on layout.
+      // =====================================================================
+      const SRC = 512;
+      const CX = SRC / 2;
+      const CY = SRC / 2;
+
+      // ---------------------------------------------------------------- sRGB
+      // Cap. 3: pixel values are NOT proportional to light. sRGB stores roughly
+      // the 1/2.2 power of intensity, so any operation that mixes pixels
+      // (resampling included) has to happen in linear light to be physical.
+
+      const srgbToLinear = (u) =>
+        u <= 0.04045 ? u / 12.92 : Math.pow((u + 0.055) / 1.055, 2.4);
+
+      const linearToSrgb = (v) =>
+        v <= 0.0031308 ? v * 12.92 : 1.055 * Math.pow(v, 1 / 2.4) - 0.055;
+
+      // Lookup tables: pow() per channel per pixel would dominate the frame time.
+      const TO_LINEAR = new Float32Array(256);
+      for (let i = 0; i < 256; i++) TO_LINEAR[i] = srgbToLinear(i / 255);
+
+      const LUT_N = 4096;
+      const TO_SRGB = new Uint8Array(LUT_N + 1);
+      for (let i = 0; i <= LUT_N; i++) {
+        TO_SRGB[i] = Math.round(255 * linearToSrgb(i / LUT_N));
+      }
+
+      const encode = (v) => {
+        if (v <= 0) return 0;
+        if (v >= 1) return 255;
+        return TO_SRGB[(v * LUT_N) | 0];
+      };
+
+      // =====================================================================
+      // Test chart, generated procedurally so the file stays self-contained.
+      //
+      // The left half carries concentric arcs (edges TANGENTIAL to the radius)
+      // and the right half carries radial spokes (edges ALONG the radius), at
+      // the same radii. Lateral chromatic aberration displaces pixels radially,
+      // so the arcs fringe and the spokes do not. That contrast is the point.
+      // =====================================================================
+
+      function buildChart() {
+        const c = document.createElement('canvas');
+        c.width = SRC;
+        c.height = SRC;
+        const g = c.getContext('2d');
+
+        g.fillStyle = '#05070a';
+        g.fillRect(0, 0, SRC, SRC);
+
+        // Right at the optical centre the displacement is zero, so these small
+        // rings stay perfectly white no matter how hard you push the effect.
+        g.strokeStyle = '#ffffff';
+        g.lineWidth = 4;
+        for (let r = 9; r <= 27; r += 9) {
+          g.beginPath();
+          g.arc(CX, CY, r, 0, Math.PI * 2);
+          g.stroke();
+        }
+
+        // Tangential edges: concentric arcs, left half.
+        g.lineCap = 'butt';
+        for (let r = 46; r < 250; r += 26) {
+          g.lineWidth = 9;
+          g.beginPath();
+          g.arc(CX, CY, r, Math.PI * 0.52, Math.PI * 1.48);
+          g.stroke();
+        }
+
+        // Radial edges: spokes over the same radii, right half.
+        g.lineWidth = 9;
+        for (let i = 0; i < 11; i++) {
+          const a = -Math.PI * 0.46 + (i / 10) * Math.PI * 0.92;
+          g.beginPath();
+          g.moveTo(CX + Math.cos(a) * 46, CY + Math.sin(a) * 46);
+          g.lineTo(CX + Math.cos(a) * 244, CY + Math.sin(a) * 244);
+          g.stroke();
+        }
+
+        // High-contrast corner blocks: maximum radius, maximum displacement.
+        g.fillStyle = '#ffffff';
+        const b = 34;
+        for (const [x, y] of [[16, 16], [SRC - 16 - b, 16], [16, SRC - 16 - b], [SRC - 16 - b, SRC - 16 - b]]) {
+          g.fillRect(x, y, b, b);
+          g.clearRect(x + 10, y + 10, b - 20, b - 20);
+          g.fillStyle = '#05070a';
+          g.fillRect(x + 10, y + 10, b - 20, b - 20);
+          g.fillStyle = '#ffffff';
+        }
+
+        // A saturated strip: aberration is a geometric effect, so it shows up
+        // on coloured edges too, not only on white ones.
+        const patches = ['#ff2d55', '#34c759', '#0a84ff', '#ffd60a', '#ffffff'];
+        patches.forEach((col, i) => {
+          g.fillStyle = col;
+          g.fillRect(96 + i * 64, SRC - 92, 44, 44);
+        });
+
+        // Grey ramp: makes the linear-vs-sRGB difference legible.
+        for (let i = 0; i < 16; i++) {
+          const v = Math.round((i / 15) * 255);
+          g.fillStyle = 'rgb(' + v + ',' + v + ',' + v + ')';
+          g.fillRect(96 + i * 20, 40, 20, 26);
+        }
+
+        return g.getImageData(0, 0, SRC, SRC);
+      }
+
+      const chart = buildChart();
+
+      // Two copies of the source: one in linear light (physically correct) and
+      // one left in sRGB (what you get when you forget to decode).
+      const srcLin = new Float32Array(SRC * SRC * 3);
+      const srcSrgb = new Float32Array(SRC * SRC * 3);
+      for (let i = 0, p = 0; i < SRC * SRC; i++) {
+        for (let c = 0; c < 3; c++, p++) {
+          const byte = chart.data[i * 4 + c];
+          srcLin[p] = TO_LINEAR[byte];
+          srcSrgb[p] = byte / 255;
+        }
+      }
+
+      // =====================================================================
+      // Optics. Cauchy's equation gives the refractive index per wavelength;
+      // the lensmaker's equation turns that into a focal length; different
+      // focal lengths mean different magnification, which is lateral CA.
+      // =====================================================================
+
+      // Standard textbook Cauchy coefficients, B in µm².
+      const GLASSES = [
+        { name: 'BK7', A: 1.5046, B: 0.0042 },
+        { name: 'BaF10', A: 1.67, B: 0.00743 },
+        { name: 'SF10', A: 1.728, B: 0.01342 },
+      ];
+
+      // Representative wavelengths for the three display primaries, in µm.
+      const LAMBDA = [0.61, 0.55, 0.465];
+
+      function optics() {
+        const glass = GLASSES[state.glass];
+        const n = LAMBDA.map((l) => glass.A + glass.B / (l * l));
+        // Lensmaker: 1/f = (n - 1)(1/R1 - 1/R2)  =>  f is proportional to 1/(n-1)
+        const f = n.map((v) => 1 / (v - 1));
+        // Magnification relative to green, exaggerated so it is visible on screen.
+        const scale = f.map((v) => 1 + state.exagg * (v / f[1] - 1));
+        return { glass, n, f, scale };
+      }
+
+      // =====================================================================
+      // Parameters
+      // =====================================================================
+
+      const PARAMS = [
+        { id: 'glass', label: 'glass', kind: 'choice', choices: ['BK7', 'BaF10', 'SF10'], value: 0 },
+        { id: 'exagg', label: 'exaggeration', kind: 'slider', min: 0, max: 12, step: 0.1, value: 1.5, unit: '×' },
+        { id: 'space', label: 'resample in', kind: 'choice', choices: ['linear light', 'sRGB (wrong)'], value: 0, warn: 1 },
+        { id: 'filter', label: 'reconstruction', kind: 'choice', choices: ['bilinear', 'nearest'], value: 0 },
+        { id: 'view', label: 'view', kind: 'choice', choices: ['RGB', 'R', 'G', 'B', 'Δ'], value: 0 },
+        { id: 'compare', label: 'split: original | aberrated', kind: 'toggle', value: 0 },
+        { id: 'zoom', label: 'probe zoom', kind: 'slider', min: 4, max: 32, step: 1, value: 14, unit: '×' },
+      ];
+
+      const state = {};
+      for (const p of PARAMS) state[p.id] = p.value;
+
+      const probe = { x: CX - 168, y: CY };
+
+      // =====================================================================
+      // The effect itself
+      // =====================================================================
+
+      const off = document.createElement('canvas');
+      off.width = SRC;
+      off.height = SRC;
+      const offCtx = off.getContext('2d');
+      const outImage = offCtx.createImageData(SRC, SRC);
+
+      function sampleBilinear(buf, u, v, c) {
+        if (u < 0) u = 0; else if (u > SRC - 1) u = SRC - 1;
+        if (v < 0) v = 0; else if (v > SRC - 1) v = SRC - 1;
+
+        const x0 = u | 0;
+        const y0 = v | 0;
+        const x1 = x0 + 1 < SRC ? x0 + 1 : x0;
+        const y1 = y0 + 1 < SRC ? y0 + 1 : y0;
+        const fx = u - x0;
+        const fy = v - y0;
+
+        const r0 = y0 * SRC;
+        const r1 = y1 * SRC;
+        const a = buf[(r0 + x0) * 3 + c] + (buf[(r0 + x1) * 3 + c] - buf[(r0 + x0) * 3 + c]) * fx;
+        const b = buf[(r1 + x0) * 3 + c] + (buf[(r1 + x1) * 3 + c] - buf[(r1 + x0) * 3 + c]) * fx;
+        return a + (b - a) * fy;
+      }
+
+      function sampleNearest(buf, u, v, c) {
+        let x = Math.round(u);
+        let y = Math.round(v);
+        if (x < 0) x = 0; else if (x > SRC - 1) x = SRC - 1;
+        if (y < 0) y = 0; else if (y > SRC - 1) y = SRC - 1;
+        return buf[(y * SRC + x) * 3 + c];
+      }
+
+      function applyAberration() {
+        const { scale } = optics();
+        const linear = state.space === 0;
+        const buf = linear ? srcLin : srcSrgb;
+        const sample = state.filter === 0 ? sampleBilinear : sampleNearest;
+        const out = outImage.data;
+        const view = state.view;
+        const half = CX;
+
+        for (let y = 0; y < SRC; y++) {
+          const dy = y - CY;
+          for (let x = 0; x < SRC; x++) {
+            const dx = x - CX;
+            const o = (y * SRC + x) * 4;
+            const src = (y * SRC + x) * 3;
+            const bypass = state.compare && x < half;
+
+            for (let c = 0; c < 3; c++) {
+              let value;
+              if (bypass) {
+                value = buf[src + c];
+              } else {
+                // The whole effect: each channel reads from a slightly
+                // differently scaled copy of the source image.
+                const s = scale[c];
+                value = sample(buf, CX + dx / s, CY + dy / s, c);
+              }
+
+              if (view === 4) {
+                // Difference against the untouched source, amplified.
+                const d = Math.abs(value - buf[src + c]) * 6;
+                value = d > 1 ? 1 : d;
+              } else if (view !== 0 && view - 1 !== c) {
+                value = 0;
+              }
+
+              out[o + c] = linear ? encode(value) : Math.round(Math.max(0, Math.min(1, value)) * 255);
+            }
+            out[o + 3] = 255;
+          }
+        }
+
+        offCtx.putImageData(outImage, 0, 0);
+      }
+
+      // =====================================================================
+      // Views
+      // =====================================================================
+
+      const mainCanvas = document.getElementById('main');
+      const mainCtx = mainCanvas.getContext('2d');
+      const magCanvas = document.getElementById('mag');
+      const magCtx = magCanvas.getContext('2d');
+      const profCanvas = document.getElementById('profile');
+      const profCtx = profCanvas.getContext('2d');
+
+      function fitCanvas(canvas, ctx) {
+        const rect = canvas.getBoundingClientRect();
+        if (rect.width < 1 || rect.height < 1) return false;
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        const w = Math.round(rect.width * dpr);
+        const h = Math.round(rect.height * dpr);
+        if (canvas.width !== w || canvas.height !== h) {
+          canvas.width = w;
+          canvas.height = h;
+        }
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        return { w: rect.width, h: rect.height };
+      }
+
+      function drawMain() {
+        const size = fitCanvas(mainCanvas, mainCtx);
+        if (!size) return;
+
+        mainCtx.imageSmoothingEnabled = true;
+        mainCtx.drawImage(off, 0, 0, size.w, size.h);
+
+        const k = size.w / SRC;
+
+        if (state.compare) {
+          mainCtx.save();
+          mainCtx.strokeStyle = 'rgba(255,255,255,0.55)';
+          mainCtx.setLineDash([5, 4]);
+          mainCtx.lineWidth = 1;
+          mainCtx.beginPath();
+          mainCtx.moveTo(size.w / 2, 0);
+          mainCtx.lineTo(size.w / 2, size.h);
+          mainCtx.stroke();
+          mainCtx.restore();
+        }
+
+        // Probe marker
+        const span = (magCanvas.width / (window.devicePixelRatio || 1) / state.zoom) * k;
+        mainCtx.save();
+        mainCtx.strokeStyle = 'rgba(255, 200, 87, 0.95)';
+        mainCtx.lineWidth = 1.5;
+        mainCtx.strokeRect(probe.x * k - span / 2, probe.y * k - span / 2, span, span);
+        mainCtx.restore();
+      }
+
+      function drawMag() {
+        const size = fitCanvas(magCanvas, magCtx);
+        if (!size) return;
+
+        const span = size.w / state.zoom;
+        magCtx.imageSmoothingEnabled = false;
+        magCtx.fillStyle = '#000';
+        magCtx.fillRect(0, 0, size.w, size.h);
+        magCtx.drawImage(off, probe.x - span / 2, probe.y - span / 2, span, span, 0, 0, size.w, size.h);
+
+        // The row the profile is measured on.
+        magCtx.save();
+        magCtx.strokeStyle = 'rgba(255, 200, 87, 0.9)';
+        magCtx.setLineDash([4, 3]);
+        magCtx.lineWidth = 1;
+        magCtx.beginPath();
+        magCtx.moveTo(0, size.h / 2);
+        magCtx.lineTo(size.w, size.h / 2);
+        magCtx.stroke();
+        magCtx.restore();
+      }
+
+      function drawProfile() {
+        const size = fitCanvas(profCanvas, profCtx);
+        if (!size) return;
+
+        profCtx.fillStyle = '#12141a';
+        profCtx.fillRect(0, 0, size.w, size.h);
+
+        const magSize = magCanvas.width / (window.devicePixelRatio || 1);
+        const span = Math.max(4, Math.round(magSize / state.zoom));
+        const x0 = Math.round(probe.x - span / 2);
+        const y = Math.max(0, Math.min(SRC - 1, Math.round(probe.y)));
+
+        const padL = 34;
+        const padR = 10;
+        const padT = 12;
+        const padB = 20;
+        const plotW = size.w - padL - padR;
+        const plotH = size.h - padT - padB;
+
+        // Axes
+        profCtx.strokeStyle = '#262b36';
+        profCtx.lineWidth = 1;
+        profCtx.beginPath();
+        profCtx.moveTo(padL, padT);
+        profCtx.lineTo(padL, padT + plotH);
+        profCtx.lineTo(padL + plotW, padT + plotH);
+        profCtx.stroke();
+
+        profCtx.fillStyle = '#8b93a7';
+        profCtx.font = '10px ui-monospace, Menlo, monospace';
+        profCtx.textBaseline = 'middle';
+        profCtx.fillText('255', 4, padT + 4);
+        profCtx.fillText('0', 4, padT + plotH - 4);
+        profCtx.textBaseline = 'top';
+        profCtx.fillText('x = ' + x0 + ' … ' + (x0 + span) + '   (row y = ' + y + ')', padL, padT + plotH + 6);
+
+        const data = outImage.data;
+        const colors = ['#ff5c7a', '#4fd6a0', '#5aa9ff'];
+
+        for (let c = 0; c < 3; c++) {
+          profCtx.strokeStyle = colors[c];
+          profCtx.lineWidth = 1.8;
+          profCtx.beginPath();
+          for (let i = 0; i <= span; i++) {
+            const sx = Math.max(0, Math.min(SRC - 1, x0 + i));
+            const v = data[(y * SRC + sx) * 4 + c] / 255;
+            const px = padL + (i / span) * plotW;
+            const py = padT + (1 - v) * plotH;
+            if (i === 0) profCtx.moveTo(px, py);
+            else profCtx.lineTo(px, py);
+          }
+          profCtx.stroke();
+        }
+      }
+
+      // =====================================================================
+      // Panels
+      // =====================================================================
+
+      const fmt = (v, d) => (Math.abs(v) < 5e-7 ? 0 : v).toFixed(d);
+
+      const readoutsNode = document.getElementById('readouts');
+      const eqNode = document.getElementById('equations');
+      const codeNode = document.getElementById('code');
+
+      function updatePanels() {
+        const { glass, n, f, scale } = optics();
+
+        // Displacement, in pixels, at the far corner of the frame.
+        const rMax = Math.hypot(CX, CY);
+        const shift = scale.map((s) => rMax * (1 - 1 / s));
+        const spread = Math.abs(shift[0] - shift[2]);
+
+        const rows = [
+          ['λ (R, G, B)', LAMBDA.map((l) => Math.round(l * 1000)).join(' / ') + ' nm', ''],
+          ['n(λ_R)', fmt(n[0], 5), 'r-red'],
+          ['n(λ_G)', fmt(n[1], 5), 'r-green'],
+          ['n(λ_B)', fmt(n[2], 5), 'r-blue'],
+          ['scale R', fmt(scale[0], 5), 'r-red'],
+          ['scale G', fmt(scale[1], 5), 'r-green'],
+          ['scale B', fmt(scale[2], 5), 'r-blue'],
+          ['R–B spread @ corner', fmt(spread, 2) + ' px', ''],
+          ['Abbe-ish V', fmt((n[1] - 1) / (n[2] - n[0]), 1), ''],
+        ];
+
+        readoutsNode.replaceChildren(
+          ...rows.map(([label, value, cls]) => {
+            const row = document.createElement('div');
+            row.className = 'readout';
+            const l = document.createElement('span');
+            l.className = 'readout-label';
+            l.textContent = label;
+            const v = document.createElement('span');
+            v.className = 'readout-value ' + cls;
+            v.textContent = value;
+            row.append(l, v);
+            return row;
+          })
+        );
+
+        const eq = [
+          ['Cauchy', 'n(λ) = A + B/λ²      A = ' + glass.A + ',  B = ' + glass.B + ' µm²'],
+          ['Lensmaker', '1/f = (n − 1)(1/R₁ − 1/R₂)   ⟹   f ∝ 1/(n − 1)'],
+          ['Magnification', 's_c = 1 + E · ( f_c / f_G − 1 )        E = ' + fmt(state.exagg, 1)],
+          ['', 's_R = ' + fmt(scale[0], 5) + '   s_G = ' + fmt(scale[1], 5) + '   s_B = ' + fmt(scale[2], 5)],
+          ['Resample', 'out_c(p) = src_c( centre + (p − centre) / s_c )'],
+          ['Displacement', '|Δ| = r · (1 − 1/s_c)   →  grows with radius, zero at the centre'],
+        ];
+
+        eqNode.replaceChildren(
+          ...eq.map(([name, body]) => {
+            const line = document.createElement('div');
+            line.className = 'eq-line';
+            const n1 = document.createElement('span');
+            n1.className = 'eq-name';
+            n1.textContent = name;
+            const b1 = document.createElement('span');
+            b1.className = 'eq-body';
+            b1.textContent = body;
+            line.append(n1, b1);
+            return line;
+          })
+        );
+
+        const space = state.space === 0 ? 'srcLinear' : 'srcSrgb  // wrong: not light-linear';
+        const filt = state.filter === 0 ? 'bilinear' : 'nearest ';
+        const code =
+          '<span class="c-com">// one destination pixel, three channels</span>\n' +
+          '<span class="c-key">const</span> scale = [<span class="c-num">' +
+          fmt(scale[0], 5) + '</span>, <span class="c-num">' + fmt(scale[1], 5) +
+          '</span>, <span class="c-num">' + fmt(scale[2], 5) + '</span>];\n\n' +
+          '<span class="c-key">for</span> (<span class="c-key">let</span> c = <span class="c-num">0</span>; c &lt; <span class="c-num">3</span>; c++) {\n' +
+          '  <span class="c-key">const</span> s = scale[c];\n' +
+          '  <span class="c-key">const</span> u = CX + (x - CX) / s;\n' +
+          '  <span class="c-key">const</span> v = CY + (y - CY) / s;\n' +
+          '  out[c] = <span class="c-fn">' + filt + '</span>(' + space + ', u, v, c);\n' +
+          '}';
+
+        codeNode.replaceChildren();
+        const pre = document.createElement('pre');
+        pre.innerHTML = code;
+        codeNode.append(pre);
+      }
+
+      // =====================================================================
+
+      let queued = false;
+
+      function render() {
+        applyAberration();
+        drawMain();
+        drawMag();
+        drawProfile();
+        updatePanels();
+      }
+
+      function requestRender() {
+        if (queued) return;
+        queued = true;
+        requestAnimationFrame(() => {
+          queued = false;
+          render();
+        });
+      }
+
+      // =====================================================================
+      // Controls
+      // =====================================================================
+
+      const controlsNode = document.getElementById('controls');
+
+      function buildControls() {
+        controlsNode.replaceChildren();
+
+        for (const spec of PARAMS) {
+          if (spec.kind === 'toggle') {
+            const wrap = document.createElement('label');
+            wrap.className = 'ctrl ctrl-toggle';
+            const input = document.createElement('input');
+            input.type = 'checkbox';
+            // Without this the browser restores the previous value on reload,
+            // so a refresh would not return you to the declared defaults.
+            input.autocomplete = 'off';
+            input.checked = state[spec.id] > 0.5;
+            input.addEventListener('change', () => {
+              state[spec.id] = input.checked ? 1 : 0;
+              requestRender();
+            });
+            const label = document.createElement('span');
+            label.className = 'ctrl-label';
+            label.textContent = spec.label;
+            wrap.append(input, label);
+            controlsNode.append(wrap);
+          } else if (spec.kind === 'choice') {
+            const wrap = document.createElement('div');
+            wrap.className = 'ctrl';
+            const label = document.createElement('span');
+            label.className = 'ctrl-label';
+            label.textContent = spec.label;
+            const group = document.createElement('div');
+            group.className = 'segmented';
+
+            const buttons = spec.choices.map((choice, i) => {
+              const button = document.createElement('button');
+              button.type = 'button';
+              button.className =
+                'seg' + (spec.warn === i ? ' warn' : '') + (i === state[spec.id] ? ' is-active' : '');
+              button.textContent = choice;
+              button.addEventListener('click', () => {
+                buttons.forEach((b) => b.classList.remove('is-active'));
+                button.classList.add('is-active');
+                state[spec.id] = i;
+                requestRender();
+              });
+              group.append(button);
+              return button;
+            });
+
+            wrap.append(label, group);
+            controlsNode.append(wrap);
+          } else {
+            const wrap = document.createElement('label');
+            wrap.className = 'ctrl';
+            const head = document.createElement('span');
+            head.className = 'ctrl-head';
+            const label = document.createElement('span');
+            label.className = 'ctrl-label';
+            label.textContent = spec.label;
+            const value = document.createElement('span');
+            value.className = 'ctrl-value';
+            head.append(label, value);
+
+            const input = document.createElement('input');
+            input.type = 'range';
+            input.autocomplete = 'off';
+            input.min = spec.min;
+            input.max = spec.max;
+            input.step = spec.step;
+            input.value = state[spec.id];
+
+            const decimals = spec.step >= 1 ? 0 : 1;
+            const show = () => {
+              const v = Number(input.value);
+              value.textContent = v.toFixed(decimals) + (spec.unit || '');
+            };
+            show();
+
+            input.addEventListener('input', () => {
+              state[spec.id] = Number(input.value);
+              show();
+              requestRender();
+            });
+
+            wrap.append(head, input);
+            controlsNode.append(wrap);
+          }
+        }
+
+        const reset = document.createElement('button');
+        reset.type = 'button';
+        reset.className = 'btn';
+        reset.textContent = 'Reset';
+        reset.addEventListener('click', () => {
+          for (const p of PARAMS) state[p.id] = p.value;
+          probe.x = CX - 168;
+          probe.y = CY;
+          buildControls();
+          requestRender();
+        });
+        controlsNode.append(reset);
+      }
+
+      // =====================================================================
+      // Probe interaction
+      // =====================================================================
+
+      let dragging = false;
+
+      function moveProbe(event) {
+        const rect = mainCanvas.getBoundingClientRect();
+        const k = SRC / rect.width;
+        probe.x = Math.max(0, Math.min(SRC - 1, (event.clientX - rect.left) * k));
+        probe.y = Math.max(0, Math.min(SRC - 1, (event.clientY - rect.top) * k));
+        requestRender();
+      }
+
+      mainCanvas.addEventListener('pointerdown', (e) => {
+        dragging = true;
+        mainCanvas.setPointerCapture(e.pointerId);
+        moveProbe(e);
+      });
+      mainCanvas.addEventListener('pointermove', (e) => {
+        if (dragging) moveProbe(e);
+      });
+      mainCanvas.addEventListener('pointerup', (e) => {
+        dragging = false;
+        mainCanvas.releasePointerCapture(e.pointerId);
+      });
+
+      new ResizeObserver(requestRender).observe(mainCanvas);
+      buildControls();
+      render();
+    </script>
+  </body>
+</html>
